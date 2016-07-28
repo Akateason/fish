@@ -1,4 +1,5 @@
 package com.weixin.oauth.model;
+
 import com.jfinal.plugin.activerecord.Db;
 import com.jfinal.plugin.activerecord.Record;
 import cn.myapp.model.DaoObject;
@@ -42,7 +43,7 @@ public class SNSUserInfo extends DaoObject {
 	public String getOpenid() {
 		return openid;
 	}
-
+	
 	public void setOpenId(String openid) {
 		this.openid = openid;
 	}
@@ -114,12 +115,13 @@ public class SNSUserInfo extends DaoObject {
 	////////////////////////////////////////////////////////////////////////////////////////
 	
 	public static SNSUserInfo selectByOpenId(String openIdStr) {
-		Record record = Db.findById("user", "openid", openIdStr) ;
+		String sql = "select * from activity.user where openid = ? ;" ;
+		Record record = Db.findFirst(sql,openIdStr) ;		
+
 		if (record != null) {
 			return (SNSUserInfo)new SNSUserInfo().fetchFromRecord(record) ;
 		}
 		return null ;
-	}
-	
+	}		
 	
 }

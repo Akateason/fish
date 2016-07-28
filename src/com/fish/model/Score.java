@@ -1,5 +1,10 @@
 package com.fish.model;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import com.jfinal.plugin.activerecord.Db;
 import com.jfinal.plugin.activerecord.Record;
 
@@ -9,6 +14,9 @@ import cn.myapp.model.DaoObject;
 @SuppressWarnings("serial")
 public class Score extends DaoObject {
 	
+//	private static final String sql_selectScoreLeftjoinUser = "SELECT activity.score.score , activity.user.nickname , activity.user.headimgurl , activity.user.sex FROM activity.score LEFT JOIN activity.user ON activity.user.userID=activity.score.userID ORDER BY activity.score.score DESC , activity.score.createtime DESC LIMIT ? ;" ;
+	private static final String sql_selectScoreLeftjoinUser = "SELECT MAX(score) AS sc,user.nickname,user.headimgurl,user.sex FROM activity.score LEFT JOIN activity.user ON score.userID=user.userID GROUP BY activity.score.userID ORDER BY sc DESC , createtime asc LIMIT ? ;" ; 
+			
 	private int	 	scoreID ;
 	private int	 	score ;
 	private int 	gold ;
@@ -78,14 +86,59 @@ public class Score extends DaoObject {
 		return null ;
 	}
 	
-	public static int sumOfUsers() {
-		int sum = Db.queryInt("select max(scoreID) from score") ;
+	public static Long sumOfUsers() {
+		Long sum = Db.queryLong("SELECT count(*) FROM activity.score ;") ;
 		return sum ;
 	}
 	
-	public static java.util.List<Record> selectOrderByScoreDesc() {
-		java.util.List<Record> listRecord = Db.find("SELECT scoreID FROM score ORDER BY score DESC ,createtime DESC ;") ;
-		return listRecord ;
+	public static Long selectOverCount(int currentScore) {
+		Long num = Db.queryLong("SELECT count(*) FROM activity.score where score < ? ;",currentScore) ;
+		return num ;
+	}
+	
+	public static Long selectRank(int currentScore) {
+		Long num = Db.queryLong("SELECT count(*) FROM activity.score where score > ? ;",currentScore) ; 
+		return num ;
+	}
+	
+	public static Integer selectMaxScore(int userID) {
+		Integer maxScore = Db.queryInt("select max(score) as sc from score where userID = ? ;",userID) ;
+		return maxScore ;
+	}
+	
+	public static Long selectMaxRank(int userID) {
+		Long maxRank = Db.queryDouble("select rownum from (SELECT @rownum:=@rownum+1 rownum, sc, createtime , userID From (SELECT max(score) as sc, userID, createtime , @rownum:=0 FROM score group by userID order by sc desc, createtime asc ) aa ) bb where userID = ?"
+				,userID).longValue() ;
+		return maxRank ;
+	}
+	
+	
+	/**
+	 * select List Desc line With Number
+	 * @param num
+	 * @return [ {score, nickname, headimgurl , sex} , ... ]
+	 */
+	public static ArrayList<Map<String, Object>> selectListDesclineWithNumber(int num) {
+		
+		ArrayList<Map<String, Object>> statList = new ArrayList<>() ;
+		
+		List<Record> list = Db.find(sql_selectScoreLeftjoinUser , num) ;		
+		
+		for (Record record : list) {			
+			int score = record.getInt("sc").intValue() ;
+			String nickname = record.getStr("nickname") ;
+			String headimgurl = record.getStr("headimgurl") ;
+			int sex = record.getInt("sex").intValue() ;
+			
+			HashMap<String, Object> map = new HashMap<>() ;
+			map.put("score", score) ;
+			map.put("nickname", nickname) ;
+			map.put("headimgurl", headimgurl) ;
+			map.put("sex", sex) ;
+			
+			statList.add(map) ;
+		}	
+		return statList ;
 	}
 	
 }
